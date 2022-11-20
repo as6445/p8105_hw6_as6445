@@ -38,9 +38,22 @@ set.seed(1)
 
 ```{r import}
 homicide = 
-  read_csv(file = "./data/homicide-data.csv")
+  read_csv(file = "./data/homicide-data.csv") %>% 
+  janitor::clean_names()
 ```
-Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
+
+Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. The number of unsolved homicides is those for which the disposition is “Closed without arrest” or “Open/No arrest”.Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
+
+```{r}
+homicide_data= homicide %>% 
+  unite("city_state", city:state, remove = FALSE, sep=", ") %>% 
+  group_by(city_state) %>% 
+  mutate(solved=ifelse(disposition == "Closed by arrest", 1, 0)) %>% 
+  filter(city_state!="Dallas, TX" & city_state!="Phoenix, AZ" & city_state!="Kansas City, MO"& city_state!="Tulsa, AL") %>%
+  filter(victim_race=="White" | victim_race=="Black")
+```
+
+
 
 For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
 

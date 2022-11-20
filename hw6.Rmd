@@ -1,30 +1,81 @@
 ---
-title: "Hw6"
+title: "Homework 6"
 author: "Ayako Sekiya"
-date: "2022-11-20"
 output: github_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(p8105.datasets)
+library(viridis)
+library(modelr)
+library(mgcv)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+set.seed(1)
 ```
 
-## R Markdown
+##Problem 1
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+##Problem 2
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r import}
+homicide = 
+  read_csv(file = "./data/homicide-data.csv")
+```
+Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
 
-```{r cars}
-summary(cars)
+For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
+
+Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
+
+Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
+
+##Problem 3
+
+Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
+
+```{r import and clean}
+birthweight = 
+  read_csv(file = "./data/birthweight.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate( babysex = as.factor(babysex),
+          frace = as.factor(frace),
+          malform = as.factor(malform),
+          mrace = as.factor(mrace))
+
+sapply(birthweight, function(x) sum(is.na(x)))
 ```
 
-## Including Plots
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
 
-You can also embed plots, for example:
+```{r}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+Compare your model to two others:
+
+One using length at birth and gestational age as predictors (main effects only)
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
+
+Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.

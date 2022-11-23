@@ -64,10 +64,24 @@ For the city of Baltimore, MD, use the glm function to fit a logistic regression
 ```{r glm}
 fit_logistic = homicide_data %>% 
   filter(city_state=="Baltimore, MD") %>% 
-  glm(resolved ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) %>% 
-  broom::tidy()
+  glm(resolved ~ victim_age + victim_race + victim_sex, data = ., family = binomial())
 ```
 
+```{r save}
+summary(fit_logisitic)
+```
+
+```{r stats}
+fit_logistic %>% 
+  broom::tidy() %>% 
+  filter(str_detect(term,"Male")) %>% 
+  mutate(log_OR = estimate,
+         OR = exp(estimate),
+        ci_low=exp(estimate-1.96*std.error),
+        ci_high=exp(estimate+1.96*std.error)) %>%
+  select(term,log_OR, OR,ci_low,ci_high) %>% 
+  knitr::kable(digits = 3)
+```
 
 Now run glm for each of the cities in your dataset, and extract the adjusted odds ratio (and CI) for solving homicides comparing male victims to female victims. Do this within a “tidy” pipeline, making use of purrr::map, list columns, and unnest as necessary to create a dataframe with estimated ORs and CIs for each city.
 

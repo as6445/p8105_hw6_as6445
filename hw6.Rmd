@@ -180,15 +180,15 @@ lm(bwt ~ blength*bhead*babysex, data = birthweight) %>%
 Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
 
 ```{r cross_validation}
-birthweight_df = crossv_mc(birthweight, 100)
+bw_df = crossv_mc(birthweight, 100)
 
-birthweight_df= birthweight_df%>% 
+bw_df= bw_df%>% 
     mutate(
     train = map(train, as_tibble),
     test = map(test, as_tibble)
   )
 
-birthweight_df= birthweight_df %>% 
+bw_df= bw_df %>% 
   mutate(
     model  = map(train, ~lm(bwt ~ gaweeks+mrace+ppwt+fincome, data = .x)),
     maineffect  = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
@@ -197,6 +197,17 @@ birthweight_df= birthweight_df %>%
     rmse_model = map2_dbl(model, test, ~rmse(model = .x, data = .y)),
     rmse_maineffect = map2_dbl(maineffect, test, ~rmse(model = .x, data = .y)),
     rmse_interactions = map2_dbl(interactions, test, ~rmse(model = .x, data = .y)))
+
+# Checking for errors
+bw_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
 Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.

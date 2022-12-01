@@ -33,9 +33,9 @@ theme_set(theme_minimal() + theme(legend.position = "bottom"))
 set.seed(1)
 ```
 
-##Problem 1
+## Problem 1
 
-##Problem 2
+## Problem 2
 
 ```{r import}
 homicide = 
@@ -43,6 +43,7 @@ homicide =
   janitor::clean_names() 
 ```
 
+#### Data Cleaning
 Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. The number of unsolved homicides is those for which the disposition is “Closed without arrest” or “Open/No arrest”.Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
 
 ```{r}
@@ -109,6 +110,7 @@ homicide_all=
   filter(term == "victim_sexMale")
 ```
 
+#### Plotting
 
 Create a plot that shows the estimated ORs and CIs for each city. Organize cities according to estimated OR, and comment on the plot.
 
@@ -116,16 +118,15 @@ Create a plot that shows the estimated ORs and CIs for each city. Organize citie
 homicide_plot= homicide_all %>% 
   filter(str_detect(term, "victim_sex")) %>% 
   ggplot(aes(x = reorder(city_state, OR), y = OR)) + 
-  geom_point(alpha = 0.5 ) +  
   geom_errorbar(aes(ymin = ci_low, ymax = ci_high)) +
-  facet_wrap(~term) + 
+  geom_point(alpha = 0.5 ) +  
   labs(
-    title = "Adjusted OR by city, state",
+    title = "Adjusted OR for Solving Homicides comparing Males to Females",
     x = "city, state",
     y = "Adjusted OR") +
-  theme(plot.title = element_text(size = 10, face = "bold"),
+  theme(plot.title = element_text(size = 12, face = "bold"),
         legend.position = "none", 
-        axis.text.x = element_text(angle = 80, vjust = 0.5, hjust = 1))
+        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.7))
   
 homicide_plot
 
@@ -133,7 +134,7 @@ ggsave("results/homicide_plot.pdf", homicide_plot, width = 20, height = 10)
 
 ```
 
-There are a couple of cities that have high error margins including, Sacramento, Pittsburgh and Alberqueue. 
+Based on this plot, New York, NY has the smallest point estimate for OR. This means that New York has the smallest odds for solving homicides for males compared to females. Albuquerque, NM has the highest point estimate for OR which means that this city has the highest odds for solving homicides for males compared to females. However, Albuquerque has a very wide confidence interval, especially when comparing to other cities.   
 
 ## Problem 3
 

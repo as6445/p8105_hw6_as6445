@@ -44,6 +44,7 @@ homicide =
 ```
 
 #### Data Cleaning
+
 Create a city_state variable (e.g. “Baltimore, MD”), and a binary variable indicating whether the homicide is solved. The number of unsolved homicides is those for which the disposition is “Closed without arrest” or “Open/No arrest”.Omit cities Dallas, TX; Phoenix, AZ; and Kansas City, MO – these don’t report victim race. Also omit Tulsa, AL – this is a data entry mistake. For this problem, limit your analysis those for whom victim_race is white or black. Be sure that victim_age is numeric.
 
 ```{r}
@@ -222,3 +223,4 @@ bw_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
+Based on the plots created with the code above, the model with all of the predictors had the highest RMSE, which means that it did not "fit" the data set as well as the other models. The model with only the main effect had the second lowest RMSE values, and the model with the interctions "fit" the dataset the best. However, the RMSE values are still very high across the three models, so these models are not the most accurate in prediction. 

@@ -35,6 +35,60 @@ set.seed(1)
 
 ## Problem 1
 
+
+To obtain a distribution for $\hat{r}^2$, we'll follow basically the same procedure we used for regression coefficients: draw bootstrap samples; the a model to each; extract the value I'm concerned with; and summarize. Here, we'll use `modelr::bootstrap` to draw the samples and `broom::glance` to produce `r.squared` values. 
+
+```{r weather_df, cache = TRUE}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+```
+
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::glance)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  ggplot(aes(x = r.squared)) + geom_density()
+```
+
+In this example, the $\hat{r}^2$ value is high, and the upper bound at 1 may be a cause for the generally skewed shape of the distribution. If we wanted to construct a confidence interval for $R^2$, we could take the 2.5% and 97.5% quantiles of the estimates across bootstrap samples. However, because the shape isn't symmetric, using the mean +/- 1.96 times the standard error probably wouldn't work well.
+
+We can produce a distribution for $\log(\beta_0 * \beta1)$ using a similar approach, with a bit more wrangling before we make our plot.
+
+```{r}
+weather_df %>% 
+  modelr::bootstrap(n = 1000) %>% 
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x) ),
+    results = map(models, broom::tidy)) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  select(id = `.id`, term, estimate) %>% 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate) %>% 
+  rename(beta0 = `(Intercept)`, beta1 = tmin) %>% 
+  mutate(log_b0b1 = log(beta0 * beta1)) %>% 
+  ggplot(aes(x = log_b0b1)) + geom_density()
+```
+
+As with $r^2$, this distribution is somewhat skewed and has some outliers. 
+
+The point of this is not to say you should always use the bootstrap -- it's possible to establish "large sample" distributions for strange parameters / values / summaries in a lot of cases, and those are great to have. But it is helpful to know that there's a way to do inference even in tough cases. 
+
 ## Problem 2
 
 ```{r import}
@@ -62,6 +116,8 @@ homicide_data=
   select(resolved, victim_age, victim_race, victim_sex)
 ```
 
+There are `r ncol(homicide_data)` columns and `r nrow(homicide_data)` observations in this data set. The variables are `r names(homicide_data)`. 
+
 For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. Save the output of glm as an R object; apply the broom::tidy to this object
 
 ```{r glm}
@@ -72,20 +128,19 @@ fit_logistic= homicide_data %>%
  
 ```
 
-```{r save}
-summary(fit_logistic)
-```
-
 Obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
 
 ```{r stats}
-fit_logistic %>% 
+baltimore_df= fit_logistic %>% 
   mutate(log_OR = estimate,
          OR = exp(estimate),
         ci_low=exp(estimate-1.96*std.error),
         ci_high=exp(estimate+1.96*std.error)) %>%
   select(term,log_OR, OR,ci_low,ci_high) %>% 
   filter(term == "victim_sexMale")
+
+baltimore_df %>% 
+  knitr::kable(digits = 3)
 ```
 
 The adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed is 0.426 (95%CI: 0.325, 0.558). In the city of Baltimore the odds of solving homicides among male victims is 0.426 times the odds of solving homicides among female victims. 
@@ -109,6 +164,9 @@ homicide_all=
         ci_high=exp(estimate+1.96*std.error)) %>%
   select(city_state,term,log_OR, OR,ci_low,ci_high) %>% 
   filter(term == "victim_sexMale")
+
+homicide_all %>% 
+  knitr::kable(digits = 3)
 ```
 
 #### Plotting
@@ -153,22 +211,38 @@ birthweight =
 sapply(birthweight, function(x) sum(is.na(x)))
 ```
 
+There is no missing data. There are `r ncol(birthweight)` columns and `r nrow(birthweight)` observations in this data set. The variables are `r names(birthweight)`. 
+
 #### Model Building
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. 
 
 Bqsed on the homework question and the codebook, I will look at the following predictors for my model:
-- `gaweeks`: gestational age (weeks)  
-- `mrace`: maternal race   
-- `ppwt`: mother's pre-pregnancy weight 
-- `fincome`: family monthly income (in hundreds, rounded) 
+* `gaweeks`: gestational age (weeks)  
+* `mrace`: maternal race   
+* `ppwt`: mother's pre-pregnancy weight 
+* `fincome`: family monthly income (in hundreds, rounded) 
 
 The outcome variable will be:
-- `bwt`: baby’s birth weight (grams)
+* `bwt`: baby’s birth weight (grams)
 
 ```{r}
-model = lm(bwt ~ gaweeks+mrace+ppwt+fincome, data = birthweight) %>% 
-broom::tidy()
+model = lm(bwt ~ gaweeks+mrace+ppwt+fincome, data = birthweight) 
+```
+
+Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+
+```{r residual_plot}
+birthweight %>% 
+  modelr::add_residuals(model) %>%
+  modelr::add_predictions(model) %>%
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  labs(
+    x = "Fitted values",
+    y = "Residuals",
+    title = "Model residuals vs fitted values"
+  )
 ```
 
 #### Cross Validation
@@ -186,7 +260,7 @@ One using head circumference, length, sex, and all interactions (including the t
 
 ```{r interactions}
 interactions=
-lm(bwt ~ blength*bhead*babysex, data = birthweight) %>% 
+lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex, data = birthweight) %>% 
  broom::tidy()
 ```
 
@@ -205,7 +279,7 @@ bw_df= bw_df %>%
   mutate(
     model  = map(train, ~lm(bwt ~ gaweeks+mrace+ppwt+fincome, data = .x)),
     maineffect  = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
-    interactions  = map(train, ~lm(bwt ~ blength*bhead*babysex, data = .x))) %>% 
+    interactions  = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex, data = .x))) %>% 
   mutate(
     rmse_model = map2_dbl(model, test, ~rmse(model = .x, data = .y)),
     rmse_maineffect = map2_dbl(maineffect, test, ~rmse(model = .x, data = .y)),
@@ -223,4 +297,4 @@ bw_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-Based on the plots created with the code above, the model with all of the predictors had the highest RMSE, which means that it did not "fit" the data set as well as the other models. The model with only the main effect had the second lowest RMSE values, and the model with the interctions "fit" the dataset the best. However, the RMSE values are still very high across the three models, so these models are not the most accurate in prediction. 
+Based on the plots created with the code above, the model with all of the predictors had the highest RMSE, which means that it did not "fit" the data set as well as the other models. The model with only the main effect had the second lowest RMSE values, and the model with the interactions "fit" the data set the best. However, the RMSE values are still very high across the three models, so these models are not the most accurate in prediction. 

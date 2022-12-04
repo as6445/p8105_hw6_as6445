@@ -380,7 +380,7 @@ One using head circumference, length, sex, and all interactions
 
 ``` r
 interactions=
-lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex, data = birthweight) %>% 
+lm(bwt ~ bhead*blength*babysex, data = birthweight) %>% 
  broom::tidy()
 ```
 
@@ -400,7 +400,7 @@ bw_df= bw_df %>%
   mutate(
     model  = map(train, ~lm(bwt ~ gaweeks+mrace+ppwt+fincome, data = .x)),
     maineffect  = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
-    interactions  = map(train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex + bhead*blength*babysex, data = .x))) %>% 
+    interactions  = map(train, ~lm(bwt ~ bhead*blength*babysex, data = .x))) %>% 
   mutate(
     rmse_model = map2_dbl(model, test, ~rmse(model = .x, data = .y)),
     rmse_maineffect = map2_dbl(maineffect, test, ~rmse(model = .x, data = .y)),
